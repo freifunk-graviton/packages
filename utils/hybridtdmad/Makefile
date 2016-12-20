@@ -12,7 +12,7 @@ define Package/hybridtdmad
   SECTION:=utils
   CATEGORY:=Utilities
   TITLE:=Hybrid TDMA userspace program and daemon
-  DEPENDS:=+zmq +libtool +lzmq +libevent2 +libnl-tiny +lua +liblua +uclibcxx
+  DEPENDS:=+zmq +libtool +libsodium +lzmq +libevent2 +libnl-tiny +lua +liblua +uclibcxx
 endef
 
 define Package/hybridtdmad/description
