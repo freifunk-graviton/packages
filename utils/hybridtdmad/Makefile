@@ -28,7 +28,14 @@ define Build/Configure
 endef
 
 define Build/Compile
-	CFLAGS="$(TARGET_CFLAGS)" CPPFLAGS="$(TARGET_CPPFLAGS)" $(MAKE) -C $(PKG_BUILD_DIR) $(TARGET_CONFIGURE_OPTS)
+	$(MAKE) -C $(PKG_BUILD_DIR) \
+		LIBS="-nodefaultlibs -lgcc -lc -luClibc++" \
+		LDFLAGS="$(EXTRA_LDFLAGS)" \
+		CXXFLAGS="$(TARGET_CFLAGS) $(EXTRA_CPPFLAGS) -nostdinc++" \
+		$(TARGET_CONFIGURE_OPTS) \
+		CROSS="$(TARGET_CROSS)" \
+		ARCH="$(ARCH)" \
+		$(1);
 endef
 
 define Package/hybridtdmad/install
