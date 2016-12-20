@@ -1,0 +1,86 @@
+#!/usr/bin/lua
+-- HybridTDMA Manager - Manager for HMAC Hybrid TDMA/CSMA
+-- Copyright 2016 Vincent Wiemann <vincent.wiemann@ironai.com>
+-- This is free software, licensed under the Apache 2.0 license.
+
+local htdma = require "graviton.hybridtdma"
+
+-- FURTHER EXPLANATION:
+-- In general a superframe is being evenly divided in a number of timeslots and has a certain length (in milliseconds).
+-- Between timeslots of different nodes (different access policies) there always needs to be a number of timeslots 
+-- as guard intervals. If nodes have a huge distance to each other and furthermore if in a PtMP deployment
+-- the variance in distance from slaves to master is high, the guard interval needs to be even longer.
+-- So we are going to use a precalculated table in the future which uses the theoretical lengths needed for the 
+-- guard intervals to optimize this as good as possible.
+-- Latency mode gives clients short, but exclusive timeslots to send their time-critical data.
+-- If there is high traffic, latency mode will additionally have timeslots until it's
+-- equal-sized with the length of normal nodes still keeping the exclusive timeslots.
+-- Throughput modes have broader timeslots when there is traffic, but can use them less often 
+-- which causes higher latency in harsh environments; when there isn't that much traffic 
+-- they will have equal-sized timeslots compared to normal nodes and latency will be quite okay.
+-- Much traffic means that the given airtime is being used completely by the node.
+--
+-- ToS Cheatsheet
+--• 0000 = normal service
+--• 1000 = minimize delay
+--• 0100 = maximize throughput
+--• 0010 = maximize reliability
+--• 0001 = minimize monetary cost
+-- The last bit, commonly called MBZ (must be zero), must always be 0.
+--
+if arg[1]=="-h" or arg[1]=="--help" or not arg[1] then
+  print('Commandline arguments example: hybrid_tdma_manager wlan0 master fixedtdma [params] \
+                                                  (IFACE ROLE   TDMAMODE   PARAMS) \
+possible ROLEs are: \
+:master   - Coordinates timeslots - can only communicate with slaves \
+:slave    - Receives timeslot access policies by master - can only communicate with master \
+:mesh     - Mesh nodes compromise on timeslots - can only comm. with mesh nodes \
+\
+possible TDMAMODEs for role MASTER are:\
+:fairtdma           - Distributes superframe evenly among all nodes\
+:fixedtdma [params] - Set fixed access policies for clients by MACs\
+:dynamic [submode]  - dynamically adjust timeslots\
+  possible submodes are:\
+  :mixed        - lets client decide on slavemode (priority)\
+  :throughput   - tries to reach maximum throughput in total (Nodes with bad connection will suffer)\
+  :weakfriendly - gives more timeslots to nodes with bad connection\
+  :compromise   - a compromise between throughput and weakfriendly\
+\
+possible TDMAMODEs for role SLAVE are:\
+:fixedtdma [params]  - Set fixed access policies for clients by MACs\
+:dynamic [slavemode] - Set priority (only works with master in dynamic mixed mode)\
+  possible slavemodes are:\
+  :(none)     - slavemode is not used for master in throughput, weakfriendly and compromise modes\
+  :latency    - (master must be in mixed mode) optimized for low latency\
+  :throughput - (master must be in mixed mode) optimized for high throughput\
+  :normal     - (master must be in mixed mode) compromise between latency and \
+                                               throughput (but lower priority in general)')
+  os.exit()
+end
+
+local handler = htdma.init('wlan0', 12, 20000, 1217, '/bin/hybrid_tdma')
+
+local dstHWAddr = "34:13:e8:24:77:be"
+local sta1_slots = {0,1,2,3}
+local sta2_slots = {4,5,6,7}
+local sta3_slots = {8,9,10,11}
+
+for slot_nr = 0, total_slots do
+  handler:removeAccessPolicies(slot_nr)
+  if slot_nr in sta1_slots and argv[1]=="sta1":
+    handler:addAccessPolicyToSbyDestMAC(slot_nr, dstHWAddr, 255)
+  end
+  if slot_nr in sta2_slots and argv[1]=="sta2":
+    handler:addAccessPolicyToSbyDestMAC(slot_nr, dstHWAddr, 255)
+  end
+  if slot_nr in sta3_slots and argv[1]=="sta3":
+    handler:addAccessPolicyToSbyDestMAC(slot_nr, dstHWAddr, 255)
+  end
+end
+
+if handler:installMACProc() then
+  print('HMAC is running ...')
+  handler.printCfg()
+else
+  print("HMAC is not running. Something went wrong...")
+end
