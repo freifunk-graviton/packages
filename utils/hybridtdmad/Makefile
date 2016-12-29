@@ -6,17 +6,20 @@ PKG_RELEASE:=1
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
+PKG_FIXUP:=libtool-ucxx
+
+include $(INCLUDE_DIR)/uclibc++.mk
 include $(INCLUDE_DIR)/package.mk
 
 define Package/hybridtdmad
   SECTION:=utils
   CATEGORY:=Utilities
-  TITLE:=Hybrid TDMA userspace program and daemon
-  DEPENDS:=+zmq +libtool +libsodium +lzmq +libevent2 +libnl-tiny +lua +liblua +uclibcxx
+  TITLE:=Hybrid TDMA
+  DEPENDS:=+lzmq +libzmq-nc +libevent2 +libnl-tiny +libpthread +lua +liblua $(CXX_DEPENDS)
 endef
 
 define Package/hybridtdmad/description
-	Hybrid TDMA userspace program based on hMAC
+	Hybrid TDMA userspace configuration utility and daemon
 endef
 
 define Build/Prepare
@@ -28,14 +31,9 @@ define Build/Configure
 endef
 
 define Build/Compile
-	$(MAKE) -C $(PKG_BUILD_DIR) \
-		LIBS="-nodefaultlibs -lgcc -lc -luClibc++" \
-		LDFLAGS="$(EXTRA_LDFLAGS)" \
-		CXXFLAGS="$(TARGET_CFLAGS) $(EXTRA_CPPFLAGS) -nostdinc++" \
-		$(TARGET_CONFIGURE_OPTS) \
-		CROSS="$(TARGET_CROSS)" \
-		ARCH="$(ARCH)" \
-		$(1);
+	CFLAGS="$(TARGET_CFLAGS)" \
+	CPPFLAGS="$(TARGET_CPPFLAGS)" \
+	$(MAKE) -C $(PKG_BUILD_DIR) $(TARGET_CONFIGURE_OPTS)
 endef
 
 define Package/hybridtdmad/install
