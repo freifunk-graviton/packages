@@ -11,6 +11,8 @@ PKG_FIXUP:=libtool-ucxx
 include $(INCLUDE_DIR)/uclibc++.mk
 include $(INCLUDE_DIR)/package.mk
 
+MAKE_FLAGS += DEBUG=1 LIBNL=tiny
+
 define Package/hybridtdmad
   SECTION:=utils
   CATEGORY:=Utilities
